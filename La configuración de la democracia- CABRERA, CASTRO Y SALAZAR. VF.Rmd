@@ -1,0 +1,758 @@
+---
+title: "La configuración de la democracia"
+author: "CABRERA, CASTRO Y SALAZAR"
+date: "4/10/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+La configuración de la democracia
+Presentado por Brenda Cabrera (20180656), Camila Salazar (20192639) y Sebastián Castro (20195578), miembros del grupo 3.  
+
+# Presentación
+
+En el presente trabajo mostraremos qué factores configuran la democracia como sistema político; de acuerdo a un reporte de The Economist del 2020. Se pretende determinar el rango de democracia en 167 países, de los cuales 166 son estados soberanos y 165 son estados miembros de las Naciones Unidas.
+
+El reporte realizado por The Economist basa los resultados en sesenta indicadores que se agrupan en cinco categorías diferentes que consisten en lo siguiente: proceso electoral y pluralismo, libertades civiles, funcionamiento del gobierno, participación política y cultura política. En lo que respecta a la clasificación que se le hace a los países de acuerdo a su puntuación, esta se divide de la siguiente manera: países con democracia plena, países con democracia imperfecta, países con regímenes híbridos y países con regímenes autoritarios.Tal como se hace hincapié en el informe "Democracy under Siege" de Freedom in the World 2021, la democracia ha mostrado resistencia frente a una serie de repetidos golpes (P.33). Efectivamente, las democracias consolidadas son contadas con los dedos de la mano, pero son innumerables las democracias corrompidas en el mundo. 
+
+En esta trabajo se ha encontrado que existen variables que afectan de una manera más significativa al hecho de determinar si un país vive en una democracia o no y en caso de no vivir en una democracia se pueden dividir en regímenes híbridos y regímenes autoritarios. Es importante mencionar que en el presente trabajo se ha incorporado al análisis dos bases de datos. Una de ellas engloba las asignaturas habilidad lectora, matemáticas y ciencias como variables que pueden influir sobre la llamada democratización en los países. Asimismo, incluimos la base de datos "índice global de la felicidad" fusionado con la principal base que contiene los países estudiados sobre su sistema político configurado.
+
+```{r}
+library(htmltab)
+library(stringr)
+```
+
+```{r}
+link = "https://es.wikipedia.org/wiki/%C3%8Dndice_de_democracia#%C3%8Dndice_de_democracia_seg%C3%BAn_la_regi%C3%B3n"
+path = "/html/body/div[3]/div[3]/div[5]/div[1]/table[2]"
+dataWS = htmltab(link, path)
+head(dataWS)
+```
+
+```{r}
+str(dataWS)
+```
+
+
+```{r}
+names(dataWS)
+```
+
+```{r}
+names(dataWS)=c("Puesto","Pais","Puntuacion","Proceso_electoral_y_pluralismo","Funcionamiento_Del_gobierno","Participacion_politica", "Cultura_politica", "Derechos_civiles", "Categoria")
+```
+
+```{r}
+names(dataWS)
+```
+
+```{r}
+categoricals=c("Categoria")
+dataWS[,categoricals]=mosaic::factorize(dataWS[,categoricals])
+```
+
+```{r}
+names(dataWS)
+```
+
+```{r}
+dataWS[,3:8]=lapply(dataWS[,3:8],as.numeric)
+```
+
+```{r}
+library(readxl)
+PÌSA_2018 <- read_excel("PÌSA 2018 (1).xlsx")
+names(PÌSA_2018)=c("Pais", "Habilidad_lectora", "Matematicas","Ciencias")
+```
+
+```{r}
+NuevaData=merge(dataWS,PÌSA_2018)
+NuevaData=merge(dataWS,PÌSA_2018,by.x='Pais', by.y='Pais')
+str(NuevaData)
+```
+
+```{r}
+link2= "https://es.wikipedia.org/wiki/%C3%8Dndice_global_de_felicidad"
+path2="/html/body/div[3]/div[3]/div[5]/div[1]/table"
+felicidad= htmltab(link2,path2)
+names(felicidad)=c("número","País","Puntuación", "PBI", "Apoyo_social", "Esperanza_vida_saludable")
+NuevaDATA2= merge(NuevaData, felicidad, by.x = "Pais", by.y = "País")
+NuevaDATA2=NuevaDATA2[-c(13)]
+NuevaDATA2[14:16]=lapply(NuevaDATA2[14:16], as.numeric)
+
+```
+
+
+Nuestra hipótesis es la siguiente: ‘el índice de democracia de un país ha sido afectado por el proceso electoral y pluralismo la cual se representa en R así:
+
+```{r}
+modelo1=formula(Puntuacion~Proceso_electoral_y_pluralismo)
+```
+
+```{r}
+plot(dataWS$Proceso_electoral_y_pluralismo, dataWS$Puntuacion)
+```
+
+
+```{r}
+library(stargazer)
+reg1=lm(modelo1,data=dataWS)
+summary(reg1)
+```
+
+Sí es válido porque el p-value es menor a 0.05 y el adjusted R.squared explica el 87.66% del modelo.
+
+```{r}
+modelo2=formula(Puntuacion~Funcionamiento_Del_gobierno+Participacion_politica)
+```
+
+```{r}
+reg2=lm(modelo2,data=dataWS)
+summary(reg2)
+```
+
+Si es válido, explica al 91,81%.
+
+```{r}
+stargazer(reg1,reg2,type = "text",intercept.bottom = FALSE)
+```
+
+Nos quedamos con el segundo modelo porque el Std. Error es menor que en el primer modelo. 
+
+```{r}
+tanova=anova(reg1,reg2)
+stargazer(tanova,type = 'text',summary = F,title = "Table de Análisis de Varianza")
+```
+
+```{r}
+plot(dataWS$Proceso_electoral_y_pluralismo, dataWS$Funcionamiento_Del_gobierno)
+```
+```{r}
+modelo3=formula(Funcionamiento_Del_gobierno~Proceso_electoral_y_pluralismo)
+```
+
+```{r}
+reg3=lm(modelo3,data=dataWS)
+summary(reg3)
+```
+
+```{r}
+modelo4=formula(Funcionamiento_Del_gobierno~Cultura_politica+Participacion_politica+Derechos_civiles)
+```
+
+```{r}
+reg4=lm(modelo4,data=dataWS)
+summary(reg4)
+```
+Sí es válido y explica el 76,16%. 
+```{r}
+stargazer(reg1,reg2,reg3,reg4,type = "text",intercept.bottom = FALSE)
+```
+
+
+#Regresión binomial logística
+
+A continuación trabajaremos con la regresión binomial logística tomando como variable dependiente a la categoría en función de la variable putnuación: Si es > a 5.98  es una democracia, en caso contrario no se trata de una democracia si es < o = a 5.98 .
+
+```{r}
+dataWS$identificador_democracia = ifelse(dataWS$Puntuacion>5.98,1,
+ifelse(dataWS$Puntuacion<=5.98,2,0))
+```
+
+```{r}
+dataWS$identificador_democracia = factor(dataWS$identificador_democracia, levels = c(1:2), labels = c("Democracia","No democracia"))
+```
+
+
+```{r}
+set.seed(2019)
+modelo5 = glm(identificador_democracia ~ Funcionamiento_Del_gobierno + Cultura_politica + Participacion_politica, family = binomial, data = dataWS)
+stargazer(modelo5, type = "text")
+```
+
+```{r}
+exp(coef(modelo5)["Funcionamiento_Del_gobierno"])
+exp(coef(modelo5)["Cultura_politica"])
+exp(coef(modelo5)["Participacion_politica"])
+```
+
+Se puede observar que de las 3 variables independientes propuestas, la que más influye en la existencia de la democracia es la cultura politica con un efecto aproximado de 33,4%. 
+
+```{r}
+library(margins)
+model = margins(modelo5) 
+margins=summary(model)
+```
+
+```{r}
+library(ggplot2)
+base= ggplot(margins,aes(x=factor, y=AME)) + geom_point()
+base
+```
+
+```{r}
+base +  geom_errorbar(aes(ymin=lower, ymax=upper))
+```
+
+Guiándonos del gráfico, podemos señalar que la cultura política y la participación política son dos variables que configuran en gran medida a la democracia. 
+
+
+#Estrategia de partición
+
+A continuación usaremos la estrategia de partición tomando como objeto de análisis a las variables funcionamiento del gobierno, cultura política y participación política:
+
+```{r}
+dataClus=dataWS[,c("Funcionamiento_Del_gobierno","Cultura_politica","Participacion_politica")]
+dataClus=dataClus[sample(nrow(dataClus), 100), ]
+```
+
+```{r}
+library(cluster)
+g.dist = daisy(dataClus, metric="gower")
+```
+
+```{r}
+set.seed(123)
+pam.resultado=pam(g.dist,3,cluster.only = F)
+```
+
+```{r}
+dataClus$clustPT=pam.resultado$cluster
+```
+
+```{r}
+library(plyr)
+aggregate(cbind(Funcionamiento_Del_gobierno,Cultura_politica,Participacion_politica)~ clustPT, data=dataClus,mean)
+```
+
+```{r}
+dataClus$clustPT=dplyr::recode(dataClus$clustPT, `1` = 3, `2`=1,`3`=2)
+```
+
+```{r}
+aggregate(cbind(Funcionamiento_Del_gobierno,Cultura_politica,Participacion_politica)~ clustPT, data=dataClus,mean)
+```
+
+Para esta sección se han dividido a los datos en 3 partes: las variables tienen relación entre sí porque influyen en la democracia de los países y a mayor valor, mayor es la probabilidad de la presencia y de la consolidación del sistema político llamado democracia. 
+
+
+#Análisis factorial exploratorio
+
+A continuación, brindaremos a la data un análisis factorial exploratorio (para ello debe haber correlación entre las variables, de lo contrario, no habría factorización).
+Esto requiere un proceso previo, calcularemos la matriz de correlación:
+
+```{r}
+dontselect=c("Puesto","Pais", "Categoria", "identificador_democracia", "Puntuacion")
+select=setdiff(names(dataWS),dontselect) 
+theData=dataWS[,select]
+library(polycor)
+corMatrix=polycor::hetcor(theData)$correlations
+```
+
+
+Ahora exploraremos las correlaciones sin evaluar la significancia:
+
+```{r}
+library(ggcorrplot)
+ggcorrplot(corMatrix)
+```
+
+
+En el gráfico propuesto podemos apreciar la asociación (la correlación va aproximadamente desde 0,5 a 1) que existe entre las variables que influyen en la configuración de la democracia, como los Derechos Civiles, el Proceso electoral y pluralismo, entre otras. 
+
+
+Ahora comprobaremos si los datos se pueden factorizar:
+
+```{r}
+library(psych)
+psych::KMO(corMatrix)
+```
+Ahora vamos a verificar si la matriz de correlaciones es adecuada:
+
+```{r}
+cortest.bartlett(corMatrix,n=nrow(theData))$p.value>0.05
+```
+
+```{r}
+library(matrixcalc)
+
+is.singular.matrix(corMatrix)
+```
+
+Podemos presenciar que la matriz de correlación entre las variables no es de identidad ni singular.
+
+
+Determinaremos en cuantos factores o variables latentes podremos redimencionar la data:
+
+```{r}
+fa.parallel(theData,fm = 'ML', fa = 'fa',correct = T)
+```
+
+Ahora redimencionaremos a un número menor de factores:
+
+```{r}
+library(GPArotation)
+resfa <- fa(theData,
+            nfactors = 1,
+            cor = 'mixed',
+            rotate = "varimax",
+            fm="minres")
+print(resfa$loadings)
+```
+
+```{r}
+print(resfa$loadings,cutoff = 0.5)
+```
+
+```{r}
+fa.diagram(resfa)
+```
+
+
+A continuación revisaremos lo siguiente: 
+Las variables que más aportaron a los factores...
+
+```{r}
+sort(resfa$communality)
+```
+
+Las variables que más afectan a los factores son los Derechos Civiles y el Funcionamiento del gobierno con el 93% y el 82%, respectivamente. 
+
+Las variables que contribuyen a más de un factor...
+
+```{r}
+sort(resfa$complexity)
+```
+
+Ninguna de las variables propuestas contribuyen a más de un factor. 
+
+Veremos los posibles valores proyectados:
+
+```{r}
+as.data.frame(resfa$scores)%>%head()
+```
+
+```{r}
+dataWS$efa=resfa$scores
+ggplot(data=dataWS,aes(x=Puntuacion,y=efa)) + geom_point() + theme_minimal()
+```
+
+En vista a que los valores propuestos no son parecidos, cambiaremos el rango:
+
+```{r}
+library(BBmisc)
+dataWS$efa_ok=normalize(dataWS$efa, 
+                       method = "range", 
+                       margin=2, # by column
+                       range = c(0, 10))
+
+```
+
+```{r}
+ggplot(data=dataWS,aes(x=Puntuacion,y=efa_ok)) + geom_point() + theme_minimal()
+```
+
+Debido a que aparecen casos nulos y 10, modificaremos la data:
+
+```{r}
+top=rep(10,5)
+
+bottom=rep(0,5)
+
+limitCases=as.data.frame(rbind(bottom,top))
+
+theData=dataWS[,select]
+names(limitCases)=names(theData)
+
+theData=rbind(theData,limitCases)
+
+resfa <- fa(theData,
+            nfactors = 1,
+            cor = 'mixed',
+            rotate = "varimax",
+            fm="minres")
+
+scores=normalize(resfa$scores,
+                 method = "range", 
+                 margin=2, # by column
+                 range = c(0, 10))
+
+tail(scores)
+```
+
+```{r}
+dataWS$efa_ok=head(scores,-2)
+```
+
+```{r}
+ggplot(data=dataWS,aes(x=Puntuacion,y=efa_ok)) + geom_point() + theme_minimal()
+```
+
+
+A continuación haremos el análisis factorial confirmatorio: 
+
+```{r}
+modelo5 <- ' democracia  =~ Proceso_electoral_y_pluralismo + Funcionamiento_Del_gobierno + Participacion_politica + Cultura_politica + Derechos_civiles'
+```
+
+```{r}
+theDataNorm=scale(theData)
+
+library(lavaan)
+```
+
+```{r}
+cfa_fit <- cfa(modelo5, data=theDataNorm, 
+           std.lv=TRUE,  
+           missing="fiml")
+```
+
+Preparamos los tests:
+
+```{r}
+allParamCFA=parameterEstimates(cfa_fit,standardized = T)
+allFitCFA=as.list(fitMeasures(cfa_fit))
+```
+
+Veamos resultados:
+
+Si cada indicador tiene una buena conexión con su latente (ver p valor):
+
+```{r}
+allParamCFA[allParamCFA$op=="=~",]
+```
+
+Averigüemos qué tan bien salió el modelo:
+
+El ChiSquare es NO significativo? (p_value debe ser mayor a 0.05 para que sea bueno)
+
+```{r}
+allFitCFA[c("chisq", "df", "pvalue")] # pvalue>0.05
+```
+
+
+El ChiSquare no es significativo dado que el p-value es menor a 0.05.
+
+
+El Índice Tucker Lewi es mayor a 0.9?
+
+```{r}
+allFitCFA$tli # > 0.90
+```
+
+
+El índice es mayor a 0.9, por lo tanto, es significativo.
+
+
+La Raíz del error cuadrático medio de aproximación es menor a 0.05?
+
+```{r}
+allFitCFA[c('rmsea.ci.lower','rmsea' ,'rmsea.ci.upper')] # 0.05 en el Int de Conf?
+```
+
+
+La raíz del error cuadrático es mayor que 0.05.
+
+
+Revisando el análisis propuesto podemos señalar que no hay un buen augurio (por ejemplo, el ChiSquare no es significativo porque su p-value es menor a 0.05).
+
+```{r}
+scorescfa=normalize(lavPredict(cfa_fit),
+                    method = "range", 
+                    margin=2, # by column
+                    range = c(0, 10))
+```
+
+De ahí que:
+
+```{r}
+dataWS$cfa_ok=head(scorescfa,-2)
+```
+
+Veamos ambos scores calculados...
+
+```{r}
+ggplot(data=dataWS,aes(x=cfa_ok,y=efa_ok)) + geom_point() + theme_minimal()
+```
+
+
+#Análisis factorial exploratorio 2.0
+
+Usaremos dos nuevas bases de datos (PISA e índice global de la felicidad) a partir del análisis mencionado:
+
+```{r}
+#Juntamos las tres datas y eliminamos las variables que no nos interesan
+dontselect3=c("Puesto","Pais", "Categoria", "Puntuacion", "Puntuación")
+select=setdiff(names(NuevaDATA2),dontselect3) 
+theNuevaData3=NuevaDATA2[,select]
+
+#Ahora exploraremos las correlaciones sin evaluar la significancia:
+library(polycor)
+corMatrix=polycor::hetcor(theNuevaData3)$correlations
+library(polycor)
+corMatrix3=polycor::hetcor(theNuevaData3)$correlations
+library(ggcorrplot)
+ggcorrplot(corMatrix3)
+```
+
+En el gráfico propuesto podemos apreciar que hay correlación entre las variables.
+
+Ahora comprobaremos si los datos se pueden factorizar:
+
+```{r}
+library(psych)
+psych::KMO(corMatrix3)
+```
+
+
+```{r}
+cortest.bartlett(corMatrix3,n=nrow(theNuevaData3))$p.value>0.05
+```
+
+```{r}
+library(matrixcalc)
+is.singular.matrix(corMatrix3)
+```
+
+Podemos apreciar que la matriz de correlación entre las variables no es de identidad, ni singular.
+
+
+Determinaremos en cuantos factores o variables latentes podremos redimencionar la data:
+
+```{r}
+fa.parallel(theNuevaData3,fm = 'ML', fa = 'fa',correct = T)
+```
+
+Se sugiere 2 latentes pero esperábamos 3, trataremos con 3.
+
+Ahora redimencionaremos a un número menor de factores:
+
+```{r}
+library(GPArotation)
+resfa3 <- fa(theNuevaData3,
+            nfactors = 3,
+            cor = 'mixed',
+            rotate = "varimax",
+            fm="minres")
+```
+
+```{r}
+print(resfa3$loadings)
+```
+
+```{r}
+print(resfa3$loadings,cutoff = 0.15) #resultado mejorado
+```
+
+```{r}
+fa.diagram(resfa3)
+```
+
+Nos aparece que sí podemos dividir las variables en 3 latentes, como esperabamos. Asimismo, observamos que existen variables que poseen una relación fuerte con su latente como el caso de habilidad lectora con su MR2.
+
+
+
+A continuación revisaremos lo siguiente: 
+Las variables que más aportaron a los factores...
+
+```{r}
+sort(resfa3$communality)
+```
+
+
+Las variables que contribuyen a más de un factor...
+
+```{r}
+sort(resfa3$complexity)
+```
+
+
+#Análisis factorial confirmatorio
+
+```{r}
+modelo6 <- ' democracia  =~ Proceso_electoral_y_pluralismo + Funcionamiento_Del_gobierno + Participacion_politica + Cultura_politica + Derechos_civiles
+          capacidades =~ Matematicas +Ciencias + Habilidad_lectora
+           felicidad =~ Apoyo_social + Esperanza_vida_saludable + PBI'
+```
+
+```{r}
+theDataNorm2=scale(theNuevaData3)
+library(lavaan)
+cfa_fit2 <- cfa(modelo6, data=theDataNorm2, 
+           std.lv=TRUE,  
+           missing="fiml")
+```
+
+
+Preparamos los tests:
+
+```{r}
+allParamCFA2=parameterEstimates(cfa_fit2,standardized = T)
+allFitCFA2=as.list(fitMeasures(cfa_fit2))
+```
+
+Veamos resultados:
+
+Si cada indicador tiene una buena conexión con su latente (ver p valor):
+
+```{r}
+allParamCFA2[allParamCFA2$op=="=~",]
+allParamCFA2[allParamCFA2$op=="=~",c("lhs","rhs","pvalue","std.all")]
+```
+
+Averigüemos qué tan bien salió el modelo:
+
+El ChiSquare es NO significativo? (p_value debe ser mayor a 0.05 para que sea bueno)
+
+```{r}
+allFitCFA2[c("chisq", "df", "pvalue")] # pvalue>0.05
+```
+
+El ChiSquare no es significativo dado que el p-value es menor a 0.05.
+
+El Índice Tucker Lewi es mayor a 0.9?
+
+```{r}
+allFitCFA2$tli # > 0.90
+```
+
+El índice es menor a 0.9, por lo tanto, no es significativo.
+
+
+La Raíz del error cuadrático medio de aproximación es menor a 0.05?
+
+```{r}
+allFitCFA2[c('rmsea.ci.lower','rmsea' ,'rmsea.ci.upper')] # 0.05 en el Int de Conf?
+```
+
+Los scores son:
+
+```{r}
+lavPredict(cfa_fit2)
+```
+
+
+```{r}
+allScores2=as.data.frame(lavPredict(cfa_fit2))
+library(BBmisc)
+```
+
+
+```{r}
+NuevaDATA2$capacidades=normalize(allScores2$capacidades,
+                    method = "range", 
+                    margin=2, # by column
+                    range = c(0, 100))
+NuevaDATA2$democracia=normalize(allScores2$democracia,
+                    method = "range", 
+                    margin=2, # by column
+                    range = c(0, 100))
+NuevaDATA2$felicidad=normalize(allScores2$felicidad,
+                    method = "range", 
+                    margin=2, # by column
+                    range = c(0, 100))
+head(NuevaDATA2)
+```
+
+Los resultados optenidos de la sección análisis de latentes no fueron los esperados, tras recurrir a las pruebas Tucker y del índice ChiSquare.
+
+En conclusión, hemos podido observar con las 4 estrategias realizadas (Modelo lineal múltiple, Modelo binomial logístico, estrategia de partición y análisis factorial exploratorio) que más de un factor configura la presencia y la consolidación de la democracia en los países. Asimismo, hemos observado que las variables habilidad lectora, ciencias, matemáticas, e índice de la felicidad tienen una influencia mínima sobre la democracia: esto nos señala que la democracia no nace de cuánto conocimiento tengamos respecto a las asignaturas escolares, ni cuál sea nuestro estado de ánimo, sino nace, quizá, de los valores éticos de la ciudadanía. Reconocemos que la presente base de datos nos ha sido muy útil para este trabajo, sin embargo, un solo estudio no necesariamente determina un hallazgo. Por ello, consideramos que para un próximo trabajo de investigación sería relevante  recurrir a más bases de datos, pues grandes temas como la democracia requieren de gran evidencia. 
+
+
+ANEXO 1 (Exploración de clusters):
+
+- Sin modificación
+
+```{r}
+boxplot(dataClus[,-c(4)], horizontal = T, las=2, cex.axis=0.3)
+```
+
+- Tipificado
+
+```{r}
+boxplot(scale(dataClus[,-c(4)]), horizontal = T, las=2, cex.axis=0.3)
+```
+
+- Suavizado logarítmicamente
+
+```{r}
+boxplot(log(dataClus[,-c(4)]), horizontal = T, las=2, cex.axis=0.3)
+```
+
+Saber cuántos clusters pedir
+
+```{r}
+library(cluster)
+set.seed(123)
+g.dist= daisy(dataClus[,], metric = "gower")
+```
+
+```{r}
+#PAM
+set.seed(123)
+library(factoextra)
+fviz_nbclust(dataClus[,c(1:3)], pam, diss=g.dist, method="gap_stat", k.max=10, verbose=F)
+```
+
+```{r}
+#JERARQUICO
+set.seed(123)
+fviz_nbclust(dataClus[,c(1:3)], hcut,diss=g.dist,method = "gap_stat",k.max = 10,verbose = F,hc_func = "agnes")
+```
+
+```{r}
+#JERARQUICO
+fviz_nbclust(dataClus[,c(1:3)], hcut,diss=g.dist,method = "gap_stat",k.max = 10,verbose = F,hc_func = "diana")
+```
+
+```{r}
+set.seed(123)
+SUGERIDOS= 3
+res.pam=pam(g.dist,k = SUGERIDOS,cluster.only = F)
+res.agnes <- hcut(g.dist, k = SUGERIDOS,hc_func='agnes')
+res.diana <- hcut(g.dist, k = SUGERIDOS,hc_func='diana')
+```
+
+
+Evaluemos el resultado usando el coeficiente de silueta:
+
+- Un caso se ha clusterizado bien si tiene valor positivo
+
+- Un caso es dificilmente clusterizable si es muy cercano a cero
+
+- Un caso está mal clusterizado si es negativo.
+
+```{r}
+fviz_silhouette(res.pam)
+```
+
+```{r}
+fviz_silhouette(res.agnes)
+```
+
+```{r}
+fviz_silhouette(res.diana)
+```
+
+
+(Se puede observar que los casos son difíciles de clusterizar porque tienen valores cercanos a 0)
+
+
+Bibliografía:
+
+- Democracy Index 2020: In sickness and in health? (2021). The Economist. Published.
+
+- Índice de democracia. (s.f.). Wikipedia. Recuperado 18 de noviembre de 2021, de https://es.wikipedia.org/wiki/%C3%8Dndice_de_democracia
+
+- Índice global de Felicidad. Wikipedia. Recuperado 18 de noviembre de 2021, de https://es.wikipedia.org/wiki/%C3%8Dndice_global_de_felicidad
+
+-Informe PISA. (s.f.). Wikipedia. Recuperado el 4 de diciembre de 2021, de https://es.wikipedia.org/wiki/Informe_PISA
+
+- Repucci, S., & Slipowitz, A. (2021). Democracy under Siege. Freedom House, 15. https://freedomhouse.org/sites/default/files/2021-02/FIW2021_World_02252021_FINAL-web-upload.pdf
+
+
+
+
